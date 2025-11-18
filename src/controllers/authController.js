@@ -34,12 +34,16 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (user) {
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      role: user.role,
-      email: user.email,
-      profile_img: user.profile_img,
-      token: generateToken(user._id),
+      success: true,
+      message: "User registered successfully",
+      data: {
+        _id: user._id,
+        name: user.name,
+        role: user.role,
+        email: user.email,
+        profile_img: user.profile_img,
+        token: generateToken(user._id),
+      },
     });
   } else {
     res.status(400);
@@ -60,15 +64,22 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   // Check User Exists and Password Matches
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select("+password");
   if (user && (await user.matchPassword(password))) {
-    res.json({
-      _id: user._id,
-      name: user.name,
-      role: user.role,
-      email: user.email,
-      profile_img: user.profile_img,
-      token: generateToken(user._id),
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: {
+        _id: user._id,
+        name: user.name,
+        role: user.role,
+        email: user.email,
+        profileImg: {
+          url: user.profile_img.url,
+          publicId: user.profile_img.public_id,
+        },
+        token: generateToken(user._id),
+      },
     });
   } else {
     res.status(401);
@@ -84,6 +95,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   res.status(200).json({
     success: true,
+    message: "User profile Retrieved successfully",
     data: user,
   });
 });
@@ -102,12 +114,16 @@ const updateUser = asyncHandler(async (req, res) => {
     }
     const updatedUser = await user.save();
     res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      role: updatedUser.role,
-      email: updatedUser.email,
-      profile_img: updatedUser.profile_img,
-      token: generateToken(updatedUser._id),
+      success: true,
+      message: "User profile updated successfully",
+      data: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        email: updatedUser.email,
+        profile_img: updatedUser.profile_img,
+        token: generateToken(updatedUser._id),
+      },
     });
   } else {
     res.status(404);
