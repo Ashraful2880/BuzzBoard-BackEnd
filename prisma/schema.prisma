@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  profileImg   Json     @default("{\"url\":\"\",\"public_id\":\"\"}")
+  bio          String   @default("")
+  website      String   @default("")
+  socialLinks  Json     @default("{\"twitter\":\"\",\"linkedin\":\"\",\"github\":\"\"}")
+  role         String   @default("user") // user, author, admin
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  posts                 Post[]         @relation("AuthorPosts")
+  comments              Comment[]
+  series                Series[]
+  postLikes             PostLike[]
+  commentLikes          CommentLike[]
+  bookmarks             Bookmark[]
+  followers             Follow[]       @relation("FollowingUser")
+  following             Follow[]       @relation("FollowerUser")
+  notificationsReceived Notification[] @relation("NotificationRecipient")
+  notificationsSent     Notification[] @relation("NotificationSender")
+  adCampaigns           AdCampaign[]
+}
+
+model Post {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  content         String
+  excerpt         String    @default("")
+  featuredImage   Json      @default("{\"url\":\"\",\"public_id\":\"\"}")
+  category        String    @default("Technology")
+  tags            String[]  @default([])
+  status          String    @default("draft") // draft, scheduled, published, archived
+  scheduledAt     DateTime?
+  seriesOrder     Int       @default(0)
+
+  // AI Features
+  aiGenerated     Boolean   @default(false)
+  aiAssisted      Boolean   @default(false)
+  aiSummary       String    @default("")
+  readingTime     Int       @default(1)
+
+  // Ad & Monetization Readiness
+  isAdSafe        Boolean   @default(true)
+  adSafetyReason  String    @default("")
+  isSponsored     Boolean   @default(false)
+  sponsorName     String    @default("")
+  sponsorUrl      String    @default("")
+
+  // Engagement Metrics
+  likesCount      Int       @default(0)
+  reactions       Json      @default("{\"love\":0,\"fire\":0,\"insightful\":0,\"clap\":0}")
+  commentsCount   Int       @default(0)
+  views           Int       @default(0)
+
+  // SEO Fields
+  metaDescription String    @default("")
+  canonicalUrl    String    @default("")
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  authorId        String
+  author          User      @relation("AuthorPosts", fields: [authorId], references: [id], onDelete: Cascade)
+
+  seriesId        String?
+  series          Series?   @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+
+  likes           PostLike[]
+  comments        Comment[]
+  bookmarks       Bookmark[]
+  notifications   Notification[]
+
+  @@index([authorId, createdAt])
+  @@index([status, createdAt])
+  @@index([category, createdAt])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
+model Comment {
+  id            String        @id @default(cuid())
+  content       String
+  likesCount    Int           @default(0)
+  isEdited      Boolean       @default(false)
+  status        String        @default("active")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  postId        String
+  post          Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId      String
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  parentId      String?
+  parentComment Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       Comment[]     @relation("CommentReplies")
+
+  likes         CommentLike[]
+  notifications Notification[]
+
+  @@index([postId, parentId, createdAt])
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("FollowerUser", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("FollowingUser", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model Series {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String   @default("")
+  category    String   @default("Technology")
+  coverImage  Json     @default("{\"url\":\"\",\"public_id\":\"\"}")
+  status      String   @default("ongoing")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  posts       Post[]
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // like, reaction, comment, reply, follow, system
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  recipientId String
+  recipient   User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  senderId    String
+  sender      User     @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  postId      String?
+  post        Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  commentId   String?
+  comment     Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, isRead, createdAt])
+}
+
+model AdCampaign {
+  id               String    @id @default(cuid())
+  title            String
+  sponsorName      String
+  targetUrl        String
+  imageUrl         String    @default("")
+  description      String    @default("")
+  ctaText          String    @default("Learn More")
+  placement        String    @default("in_article")
+  targetCategories String[]  @default(["All"])
+  status           String    @default("active")
+  impressions      Int       @default(0)
+  clicks           Int       @default(0)
+  ctr              Float     @default(0)
+  budget           Float     @default(0)
+  startDate        DateTime  @default(now())
+  endDate          DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  createdById      String?
+  createdBy        User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+}
+
+model Newsletter {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  name                 String   @default("")
+  subscribedCategories String[] @default(["All"])
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}

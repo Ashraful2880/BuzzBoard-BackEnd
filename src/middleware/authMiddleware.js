@@ -1,6 +1,7 @@
-const User = require("../models/User");
 const asyncHandler = require("express-async-handler");
+const { prisma } = require("../config/database");
 const { verifyToken } = require("../utils/generateToken");
+const { serializeUser } = require("../utils/serializers");
 
 const protect = asyncHandler(async (req, res, next) => {
   let token;
@@ -9,22 +10,21 @@ const protect = asyncHandler(async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-      // Get token from header
       token = req.headers.authorization.split(" ")[1];
-
-      // Verify token
       const decoded = verifyToken(token);
 
-      // Get user from the token
-      req.user = await User.findById(decoded.id).select("-password");
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+      });
 
-      if (!req.user) {
+      if (!user) {
         res.status(401);
         throw new Error("Not authorized, user not found");
       }
-      next();
+
+      req.user = serializeUser(user);
+      return next();
     } catch (error) {
-      console.error(error);
       res.status(401);
       throw new Error("Not authorized, token failed");
     }
@@ -36,7 +36,6 @@ const protect = asyncHandler(async (req, res, next) => {
   }
 });
 
-// Grant Access to specific roles
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
