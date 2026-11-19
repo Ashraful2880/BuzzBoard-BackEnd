@@ -181,7 +181,7 @@ const updateUser = asyncHandler(async (req, res) => {
 });
 
 // ============================================================================
-// OAuth 2.0 Helpers & Handlers (Google & GitHub)
+// OAuth 2.0 Helpers & Handlers (Google)
 // ============================================================================
 
 const getFrontendBaseUrl = () => {
@@ -202,7 +202,6 @@ const findOrCreateOAuthUser = async ({
   avatarUrl,
   provider,
   providerId,
-  githubUrl,
 }) => {
   const normalizedEmail = String(email).toLowerCase().trim();
   let user = await prisma.user.findUnique({
@@ -222,11 +221,6 @@ const findOrCreateOAuthUser = async ({
           url: avatarUrl || "",
           public_id: "",
         },
-        socialLinks: {
-          twitter: "",
-          linkedin: "",
-          github: githubUrl || "",
-        },
       },
     });
   } else {
@@ -240,12 +234,6 @@ const findOrCreateOAuthUser = async ({
       (!user.profileImg || !user.profileImg.url)
     ) {
       updatePayload.profileImg = { url: avatarUrl, public_id: "" };
-    }
-    if (githubUrl && (!user.socialLinks || !user.socialLinks.github)) {
-      updatePayload.socialLinks = {
-        ...(user.socialLinks || {}),
-        github: githubUrl,
-      };
     }
 
     if (Object.keys(updatePayload).length > 0) {
@@ -358,126 +346,6 @@ const googleAuthCallback = async (req, res) => {
   }
 };
 
-// @desc    Redirect to GitHub OAuth consent screen
-// @route   GET /api/v1/auth/github
-// @access  Public
-const githubAuthRedirect = (req, res) => {
-  const frontendUrl = getFrontendBaseUrl();
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    return res.redirect(
-      `${frontendUrl}/login?oauth_error=${encodeURIComponent(
-        "GitHub OAuth is not configured on the server."
-      )}`
-    );
-  }
-
-  const callbackUrl =
-    process.env.GITHUB_CALLBACK_URL ||
-    `${getServerBaseUrl(req)}/api/v1/auth/github/callback`;
-
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: callbackUrl,
-    scope: "read:user user:email",
-  });
-
-  res.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
-};
-
-// @desc    GitHub OAuth callback
-// @route   GET /api/v1/auth/github/callback
-// @access  Public
-const githubAuthCallback = async (req, res) => {
-  const frontendUrl = getFrontendBaseUrl();
-  const { code, error } = req.query;
-
-  if (error || !code) {
-    return res.redirect(
-      `${frontendUrl}/login?oauth_error=${encodeURIComponent(
-        "GitHub sign-in was cancelled or failed."
-      )}`
-    );
-  }
-
-  try {
-    const callbackUrl =
-      process.env.GITHUB_CALLBACK_URL ||
-      `${getServerBaseUrl(req)}/api/v1/auth/github/callback`;
-
-    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        client_id: process.env.GITHUB_CLIENT_ID,
-        client_secret: process.env.GITHUB_CLIENT_SECRET,
-        code: String(code),
-        redirect_uri: callbackUrl,
-      }),
-    });
-
-    const tokenData = await tokenRes.json();
-    if (!tokenRes.ok || !tokenData.access_token) {
-      throw new Error(tokenData.error_description || "Failed to obtain GitHub token");
-    }
-
-    const ghHeaders = {
-      Authorization: `Bearer ${tokenData.access_token}`,
-      Accept: "application/vnd.github+json",
-      "User-Agent": "BuzzBoard-Server",
-    };
-
-    const userRes = await fetch("https://api.github.com/user", {
-      headers: ghHeaders,
-    });
-    const profile = await userRes.json();
-
-    let email = profile.email;
-    if (!email) {
-      const emailsRes = await fetch("https://api.github.com/user/emails", {
-        headers: ghHeaders,
-      });
-      const emails = await emailsRes.json();
-      if (Array.isArray(emails)) {
-        const primary =
-          emails.find((e) => e.primary && e.verified) ||
-          emails.find((e) => e.verified) ||
-          emails[0];
-        email = primary?.email;
-      }
-    }
-
-    if (!email) {
-      throw new Error("GitHub account did not return a verified email address");
-    }
-
-    const user = await findOrCreateOAuthUser({
-      name: profile.name || profile.login,
-      email,
-      avatarUrl: profile.avatar_url,
-      provider: "github",
-      providerId: profile.id,
-      githubUrl: profile.html_url,
-    });
-
-    const jwtToken = generateToken(user.id);
-    return res.redirect(
-      `${frontendUrl}/auth/callback?token=${encodeURIComponent(jwtToken)}`
-    );
-  } catch (err) {
-    return res.redirect(
-      `${frontendUrl}/login?oauth_error=${encodeURIComponent(
-        err.message || "GitHub authentication failed."
-      )}`
-    );
-  }
-};
-
 module.exports = {
   loginUser,
   updateUser,
@@ -485,6 +353,4 @@ module.exports = {
   getUserProfile,
   googleAuthRedirect,
   googleAuthCallback,
-  githubAuthRedirect,
-  githubAuthCallback,
 };

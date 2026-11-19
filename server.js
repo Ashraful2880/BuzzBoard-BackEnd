@@ -13,6 +13,7 @@ const {
 } = require("./src/middleware/securityMiddleware");
 
 const app = express();
+app.set("trust proxy", 1);
 
 // Core & Security Middleware
 app.use(cors());
