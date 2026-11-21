@@ -89,6 +89,9 @@ model Post {
   @@index([authorId, createdAt])
   @@index([status, createdAt])
   @@index([category, createdAt])
+  @@index([status, scheduledAt])
+  @@index([seriesId, seriesOrder])
+  @@index([isAdSafe, status, createdAt])
 }
 
 model PostLike {
@@ -101,6 +104,7 @@ model PostLike {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@index([userId, createdAt])
 }
 
 model Comment {
@@ -150,6 +154,7 @@ model Bookmark {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@index([userId, createdAt])
 }
 
 model Follow {
@@ -162,6 +167,7 @@ model Follow {
   following   User     @relation("FollowingUser", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
+  @@index([followingId])
 }
 
 model Series {
@@ -179,6 +185,9 @@ model Series {
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   posts       Post[]
+
+  @@index([authorId, createdAt])
+  @@index([category, status])
 }
 
 model Notification {
@@ -225,6 +234,9 @@ model AdCampaign {
 
   createdById      String?
   createdBy        User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, placement, endDate])
+  @@index([createdById, createdAt])
 }
 
 model Newsletter {

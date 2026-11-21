@@ -25,18 +25,23 @@ const getActiveAds = asyncHandler(async (req, res) => {
     take: limitNum,
   });
 
-  const updatedAds = [];
-  for (const ad of ads) {
+  if (ads.length > 0) {
+    await prisma.adCampaign.updateMany({
+      where: { id: { in: ads.map((ad) => ad.id) } },
+      data: { impressions: { increment: 1 } },
+    });
+  }
+
+  const updatedAds = ads.map((ad) => {
     const newImpr = (ad.impressions || 0) + 1;
     const newCtr =
       newImpr > 0 ? Number(((ad.clicks / newImpr) * 100).toFixed(2)) : 0;
-
-    const updated = await prisma.adCampaign.update({
-      where: { id: ad.id },
-      data: { impressions: newImpr, ctr: newCtr },
+    return serializeAd({
+      ...ad,
+      impressions: newImpr,
+      ctr: newCtr,
     });
-    updatedAds.push(serializeAd(updated));
-  }
+  });
 
   res.status(200).json({
     success: true,
@@ -60,14 +65,22 @@ const recordAdClick = asyncHandler(async (req, res) => {
     throw new Error("Ad campaign not found");
   }
 
-  const newClicks = (ad.clicks || 0) + 1;
-  const newImpr = ad.impressions === 0 ? 1 : ad.impressions;
-  const newCtr = Number(((newClicks / newImpr) * 100).toFixed(2));
-
   const updated = await prisma.adCampaign.update({
     where: { id: ad.id },
-    data: { clicks: newClicks, impressions: newImpr, ctr: newCtr },
+    data: {
+      clicks: { increment: 1 },
+      ...(ad.impressions === 0 ? { impressions: { increment: 1 } } : {}),
+    },
   });
+
+  const safeImpr = Math.max(updated.impressions || 1, 1);
+  const newCtr = Number(((updated.clicks / safeImpr) * 100).toFixed(2));
+  if (updated.ctr !== newCtr) {
+    await prisma.adCampaign.update({
+      where: { id: updated.id },
+      data: { ctr: newCtr },
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -77,7 +90,7 @@ const recordAdClick = asyncHandler(async (req, res) => {
       targetUrl: updated.targetUrl,
       clicks: updated.clicks,
       impressions: updated.impressions,
-      ctr: updated.ctr,
+      ctr: newCtr,
     },
   });
 });

@@ -46,7 +46,16 @@ const recordUniqueViewAndLiveReader = (postId, viewerKey) => {
   return { isNewUniqueView: true, liveReaders: readers.size };
 };
 
+let lastScheduledPublishCheck = 0;
+const SCHEDULED_CHECK_INTERVAL_MS = 60 * 1000;
+
 const publishDueScheduledPosts = async () => {
+  const now = Date.now();
+  if (now - lastScheduledPublishCheck < SCHEDULED_CHECK_INTERVAL_MS) {
+    return;
+  }
+  lastScheduledPublishCheck = now;
+
   try {
     await prisma.post.updateMany({
       where: {
