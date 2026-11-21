@@ -34,24 +34,45 @@ const getOpenAIClient = () => {
 const callGeminiAPI = async (systemPrompt, userPrompt) => {
   if (!isGeminiConfigured() || typeof fetch !== "function") return null;
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
-        },
-      ],
-    }),
-  });
+  for (const model of models) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemPrompt }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: userPrompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.4,
+          },
+        }),
+      });
 
-  if (!response.ok) return null;
-  const data = await response.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        console.error(`[Gemini ${model} Error]`, response.status, errText);
+        continue;
+      }
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return text;
+    } catch (err) {
+      console.error(`[Gemini ${model} Request Failed]`, err.message);
+    }
+  }
+
+  return null;
 };
 
 // Extract top keywords from content for tags
@@ -88,6 +109,22 @@ const splitSentences = (text) => {
  * 1. Generate SEO Metadata (Title suggestions, Excerpt, Meta Description, Slug, Tags)
  */
 const generateSEOMetadata = async ({ title = "", content = "", category = "Technology" }) => {
+  if (isGeminiConfigured()) {
+    try {
+      const geminiRaw = await callGeminiAPI(
+        'You are an expert technical SEO strategist. Return ONLY valid JSON (no markdown fences) with keys: suggestedTitles (array of 3 strings), excerpt (string <= 250 chars), metaDescription (string <= 155 chars), tags (array of 5 lowercase strings), and slug (URL-safe hyphenated string).',
+        `Category: ${category}\nTitle: ${title}\nContent:\n${content.substring(0, 4000)}`
+      );
+      if (geminiRaw) {
+        const cleaned = geminiRaw.replace(/^```json\s*|\s*```$/g, "").trim();
+        const parsed = JSON.parse(cleaned);
+        return { provider: "google-gemini-free", ...parsed };
+      }
+    } catch (err) {
+      console.error("[Gemini SEO Parse Error]", err.message);
+    }
+  }
+
   const client = getOpenAIClient();
 
   if (client) {
