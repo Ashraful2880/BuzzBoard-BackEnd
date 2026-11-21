@@ -293,8 +293,32 @@ async function runTestSuite() {
     adsStore.find((a) => a.id === where.id) || null;
   prisma.adCampaign.update = async ({ where, data }) => {
     const a = adsStore.find((ad) => ad.id === where.id);
-    Object.assign(a, data);
+    if (!a) return null;
+    for (const [key, val] of Object.entries(data)) {
+      if (val && typeof val === "object" && "increment" in val) {
+        a[key] = (a[key] || 0) + val.increment;
+      } else {
+        a[key] = val;
+      }
+    }
     return a;
+  };
+  prisma.adCampaign.updateMany = async ({ where, data }) => {
+    const ids = where?.id?.in || [];
+    let count = 0;
+    for (const a of adsStore) {
+      if (ids.length === 0 || ids.includes(a.id)) {
+        for (const [key, val] of Object.entries(data)) {
+          if (val && typeof val === "object" && "increment" in val) {
+            a[key] = (a[key] || 0) + val.increment;
+          } else {
+            a[key] = val;
+          }
+        }
+        count++;
+      }
+    }
+    return { count };
   };
 
   prisma.newsletter.findUnique = async ({ where }) =>

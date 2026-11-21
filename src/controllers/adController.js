@@ -19,11 +19,13 @@ const getActiveAds = asyncHandler(async (req, res) => {
 
   const limitNum = Math.min(10, Math.max(1, parseInt(limit, 10) || 3));
 
-  const ads = await prisma.adCampaign.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limitNum,
-  });
+  const ads = (
+    await prisma.adCampaign.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: limitNum,
+    })
+  ).map((ad) => ({ ...ad }));
 
   if (ads.length > 0) {
     await prisma.adCampaign.updateMany({

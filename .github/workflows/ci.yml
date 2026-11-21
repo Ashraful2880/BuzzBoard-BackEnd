@@ -1,0 +1,38 @@
+name: BuzzBoard Server CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test-and-verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Syntax check entry and controllers
+        run: |
+          node -c server.js
+          node -c src/controllers/authController.js
+          node -c src/controllers/postController.js
+          node -c src/controllers/adController.js
+          node -c src/services/aiService.js
+
+      - name: Run API test suite
+        run: npm test
