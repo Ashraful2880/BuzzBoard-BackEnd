@@ -140,13 +140,23 @@ const updateUser = asyncHandler(async (req, res) => {
   if (req.body.bio !== undefined) updateData.bio = req.body.bio;
   if (req.body.website !== undefined) updateData.website = req.body.website;
 
-  if (req.body.socialLinks && typeof req.body.socialLinks === "object") {
-    const currentLinks = user.socialLinks || {};
-    updateData.socialLinks = {
-      twitter: req.body.socialLinks.twitter ?? currentLinks.twitter ?? "",
-      linkedin: req.body.socialLinks.linkedin ?? currentLinks.linkedin ?? "",
-      github: req.body.socialLinks.github ?? currentLinks.github ?? "",
-    };
+  if (req.body.socialLinks) {
+    let parsedLinks = req.body.socialLinks;
+    if (typeof parsedLinks === "string") {
+      try {
+        parsedLinks = JSON.parse(parsedLinks);
+      } catch {
+        parsedLinks = null;
+      }
+    }
+    if (parsedLinks && typeof parsedLinks === "object") {
+      const currentLinks = user.socialLinks || {};
+      updateData.socialLinks = {
+        twitter: parsedLinks.twitter ?? currentLinks.twitter ?? "",
+        linkedin: parsedLinks.linkedin ?? currentLinks.linkedin ?? "",
+        github: parsedLinks.github ?? currentLinks.github ?? "",
+      };
+    }
   }
 
   if (req.file) {
