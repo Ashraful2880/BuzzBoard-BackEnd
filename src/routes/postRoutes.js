@@ -5,6 +5,7 @@ const {
   getRelatedPosts,
   getPostJsonLdSchema,
   getPosts,
+  getLatestPosts,
   createPost,
   updatePost,
   deletePost,
@@ -23,6 +24,7 @@ const router = express.Router();
 
 // Static / specific routes MUST come before dynamic /:id routes
 router.get("/", getPosts);
+router.get("/latest", getLatestPosts);
 router.get("/user/my-posts", protect, getUserPosts);
 router.post("/", protect, uploadSingle, createPost);
 

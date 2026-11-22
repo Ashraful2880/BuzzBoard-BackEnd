@@ -626,12 +626,46 @@ const getUserPosts = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get latest 3 published posts for landing page
+// @route   GET /api/v1/posts/latest
+// @access  Public
+const getLatestPosts = asyncHandler(async (req, res) => {
+  await publishDueScheduledPosts();
+
+  const posts = await prisma.post.findMany({
+    where: { status: "published" },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profileImg: true,
+          bio: true,
+          website: true,
+          role: true,
+        },
+      },
+      series: { select: { id: true, title: true, slug: true } },
+    },
+  });
+
+  res.status(200).json({
+    success: true,
+    count: posts.length,
+    data: posts.map(serializePost),
+  });
+});
+
 module.exports = {
   likePost,
   reactToPost,
   getRelatedPosts,
   getPostJsonLdSchema,
   getPosts,
+  getLatestPosts,
   createPost,
   updatePost,
   deletePost,
