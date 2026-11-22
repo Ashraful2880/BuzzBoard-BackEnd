@@ -60,7 +60,9 @@ const getActiveAds = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/ads/:id/click
 // @access  Public
 const recordAdClick = asyncHandler(async (req, res) => {
-  const ad = await prisma.adCampaign.findUnique({ where: { id: req.params.id } });
+  const ad = await prisma.adCampaign.findUnique({
+    where: { id: req.params.id },
+  });
 
   if (!ad) {
     res.status(404);
@@ -88,11 +90,11 @@ const recordAdClick = asyncHandler(async (req, res) => {
     success: true,
     message: "Ad click tracked",
     data: {
-      adId: updated.id,
-      targetUrl: updated.targetUrl,
-      clicks: updated.clicks,
-      impressions: updated.impressions,
       ctr: newCtr,
+      adId: updated.id,
+      clicks: updated.clicks,
+      targetUrl: updated.targetUrl,
+      impressions: updated.impressions,
     },
   });
 });
@@ -103,16 +105,16 @@ const recordAdClick = asyncHandler(async (req, res) => {
 const createAdCampaign = asyncHandler(async (req, res) => {
   const {
     title,
-    sponsorName,
-    targetUrl,
-    imageUrl,
-    description,
-    ctaText,
-    placement,
-    targetCategories,
     status,
     budget,
+    ctaText,
     endDate,
+    imageUrl,
+    targetUrl,
+    placement,
+    sponsorName,
+    description,
+    targetCategories,
   } = req.body;
 
   if (!title || !sponsorName || !targetUrl) {
@@ -123,27 +125,27 @@ const createAdCampaign = asyncHandler(async (req, res) => {
   const ad = await prisma.adCampaign.create({
     data: {
       title,
-      sponsorName,
       targetUrl,
+      sponsorName,
       imageUrl: imageUrl || "",
+      status: status || "active",
+      budget: Number(budget) || 0,
       description: description || "",
       ctaText: ctaText || "Learn More",
       placement: placement || "in_article",
+      endDate: endDate ? new Date(endDate) : null,
+      createdById: req.user.id,
       targetCategories:
         Array.isArray(targetCategories) && targetCategories.length > 0
           ? targetCategories
           : ["All"],
-      status: status || "active",
-      budget: Number(budget) || 0,
-      endDate: endDate ? new Date(endDate) : null,
-      createdById: req.user.id,
     },
   });
 
   res.status(201).json({
     success: true,
-    message: "Ad campaign created successfully",
     data: serializeAd(ad),
+    message: "Ad campaign created successfully",
   });
 });
 
@@ -172,7 +174,9 @@ const getAllAdCampaigns = asyncHandler(async (req, res) => {
 // @route   PUT /api/v1/ads/:id
 // @access  Private
 const updateAdCampaign = asyncHandler(async (req, res) => {
-  const ad = await prisma.adCampaign.findUnique({ where: { id: req.params.id } });
+  const ad = await prisma.adCampaign.findUnique({
+    where: { id: req.params.id },
+  });
   if (!ad) {
     res.status(404);
     throw new Error("Ad campaign not found");
@@ -181,15 +185,15 @@ const updateAdCampaign = asyncHandler(async (req, res) => {
   const updateData = {};
   [
     "title",
-    "sponsorName",
-    "targetUrl",
-    "imageUrl",
-    "description",
-    "ctaText",
-    "placement",
-    "targetCategories",
     "status",
     "budget",
+    "ctaText",
+    "imageUrl",
+    "targetUrl",
+    "placement",
+    "sponsorName",
+    "description",
+    "targetCategories",
   ].forEach((field) => {
     if (req.body[field] !== undefined) updateData[field] = req.body[field];
   });
@@ -213,7 +217,9 @@ const updateAdCampaign = asyncHandler(async (req, res) => {
 // @route   DELETE /api/v1/ads/:id
 // @access  Private
 const deleteAdCampaign = asyncHandler(async (req, res) => {
-  const ad = await prisma.adCampaign.findUnique({ where: { id: req.params.id } });
+  const ad = await prisma.adCampaign.findUnique({
+    where: { id: req.params.id },
+  });
   if (!ad) {
     res.status(404);
     throw new Error("Ad campaign not found");
@@ -232,7 +238,7 @@ module.exports = {
   getActiveAds,
   recordAdClick,
   createAdCampaign,
-  getAllAdCampaigns,
   updateAdCampaign,
   deleteAdCampaign,
+  getAllAdCampaigns,
 };

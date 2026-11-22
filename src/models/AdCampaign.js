@@ -3,68 +3,74 @@ const mongoose = require("mongoose");
 const adCampaignSchema = new mongoose.Schema(
   {
     title: {
+      trim: true,
       type: String,
       required: [true, "Campaign title is required"],
-      trim: true,
       maxLength: [120, "Title cannot exceed 120 characters"],
     },
     sponsorName: {
+      trim: true,
       type: String,
       required: [true, "Sponsor name is required"],
-      trim: true,
     },
     targetUrl: {
+      trim: true,
       type: String,
       required: [true, "Target URL is required"],
-      trim: true,
     },
     imageUrl: {
-      type: String,
       trim: true,
       default: "",
+      type: String,
     },
     description: {
-      type: String,
       trim: true,
-      maxLength: [300, "Description cannot exceed 300 characters"],
       default: "",
+      type: String,
+      maxLength: [300, "Description cannot exceed 300 characters"],
     },
     ctaText: {
-      type: String,
       trim: true,
+      type: String,
       default: "Learn More",
     },
     placement: {
       type: String,
-      enum: ["header_banner", "sidebar", "in_article", "footer", "sponsored_post"],
-      default: "in_article",
       index: true,
+      default: "in_article",
+      enum: [
+        "footer",
+        "sidebar",
+        "in_article",
+        "header_banner",
+        "sponsored_post",
+      ],
     },
     targetCategories: {
       type: [String],
       default: ["All"],
     },
     status: {
-      type: String,
-      enum: ["active", "paused", "completed", "draft"],
-      default: "active",
       index: true,
+      type: String,
+      default: "active",
+      enum: ["active", "paused", "completed", "draft"],
     },
     impressions: {
-      type: Number,
       default: 0,
+      type: Number,
     },
     clicks: {
-      type: Number,
       default: 0,
+      type: Number,
     },
     ctr: {
-      type: Number, // Click-Through Rate percentage
       default: 0,
+      type: Number, // Click-Through Rate percentage
     },
     budget: {
-      type: Number,
       default: 0,
+      type: Number,
     },
     startDate: {
       type: Date,
@@ -75,13 +81,13 @@ const adCampaignSchema = new mongoose.Schema(
       default: null,
     },
     createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      type: mongoose.Schema.Types.ObjectId,
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 adCampaignSchema.pre("save", function () {

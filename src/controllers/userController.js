@@ -50,7 +50,13 @@ const getBookmarks = asyncHandler(async (req, res) => {
       post: {
         include: {
           author: {
-            select: { id: true, name: true, email: true, profileImg: true, bio: true },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              profileImg: true,
+              bio: true,
+            },
           },
         },
       },
@@ -61,9 +67,9 @@ const getBookmarks = asyncHandler(async (req, res) => {
   const posts = bookmarks.map((b) => serializePost(b.post));
 
   res.json({
+    data: posts,
     success: true,
     count: posts.length,
-    data: posts,
   });
 });
 
@@ -79,7 +85,9 @@ const toggleFollow = asyncHandler(async (req, res) => {
     throw new Error("You cannot follow yourself");
   }
 
-  const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+  const targetUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+  });
   if (!targetUser) {
     res.status(404);
     throw new Error("User to follow not found");
@@ -87,7 +95,10 @@ const toggleFollow = asyncHandler(async (req, res) => {
 
   const existing = await prisma.follow.findUnique({
     where: {
-      followerId_followingId: { followerId: currentUserId, followingId: targetUserId },
+      followerId_followingId: {
+        followerId: currentUserId,
+        followingId: targetUserId,
+      },
     },
   });
 
@@ -100,9 +111,9 @@ const toggleFollow = asyncHandler(async (req, res) => {
       data: { followerId: currentUserId, followingId: targetUserId },
     });
     await createNotification({
-      recipient: targetUserId,
-      sender: currentUserId,
       type: "follow",
+      sender: currentUserId,
+      recipient: targetUserId,
       message: `${req.user.name} started following you`,
     });
   }
@@ -114,7 +125,9 @@ const toggleFollow = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: isFollowing ? `Following ${targetUser.name}` : `Unfollowed ${targetUser.name}`,
+    message: isFollowing
+      ? `Following ${targetUser.name}`
+      : `Unfollowed ${targetUser.name}`,
     data: { isFollowing, followersCount, followingCount },
   });
 });
@@ -142,7 +155,10 @@ const getPublicAuthorProfile = asyncHandler(async (req, res) => {
   });
 
   const totalViews = posts.reduce((acc, post) => acc + (post.views || 0), 0);
-  const totalLikes = posts.reduce((acc, post) => acc + (post.likesCount || 0), 0);
+  const totalLikes = posts.reduce(
+    (acc, post) => acc + (post.likesCount || 0),
+    0,
+  );
 
   res.json({
     success: true,
@@ -164,8 +180,8 @@ const getPublicAuthorProfile = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  toggleBookmark,
   getBookmarks,
   toggleFollow,
+  toggleBookmark,
   getPublicAuthorProfile,
 };

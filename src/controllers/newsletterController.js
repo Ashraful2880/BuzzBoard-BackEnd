@@ -31,25 +31,27 @@ const subscribeNewsletter = asyncHandler(async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Newsletter subscription updated",
       data: updated,
+      message: "Newsletter subscription updated",
     });
   }
 
   const subscriber = await prisma.newsletter.create({
     data: {
-      email: normalizedEmail,
-      name: name || "",
-      subscribedCategories:
-        Array.isArray(categories) && categories.length > 0 ? categories : ["All"],
       isActive: true,
+      name: name || "",
+      email: normalizedEmail,
+      subscribedCategories:
+        Array.isArray(categories) && categories.length > 0
+          ? categories
+          : ["All"],
     },
   });
 
   res.status(201).json({
     success: true,
-    message: "Successfully subscribed to BuzzBoard newsletter!",
     data: subscriber,
+    message: "Successfully subscribed to BuzzBoard newsletter!",
   });
 });
 
@@ -96,13 +98,13 @@ const getSubscribers = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    count: subscribers.length,
     data: subscribers,
+    count: subscribers.length,
   });
 });
 
 module.exports = {
+  getSubscribers,
   subscribeNewsletter,
   unsubscribeNewsletter,
-  getSubscribers,
 };

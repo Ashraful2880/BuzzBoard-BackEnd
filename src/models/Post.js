@@ -3,9 +3,9 @@ const mongoose = require("mongoose");
 const postSchema = new mongoose.Schema(
   {
     title: {
+      trim: true,
       type: String,
       required: [true, "Title is required"],
-      trim: true,
       maxLength: [200, "Title cannot exceed 200 characters"],
     },
     content: {
@@ -14,22 +14,23 @@ const postSchema = new mongoose.Schema(
       maxLength: [50000, "Content cannot exceed 50000 characters"],
     },
     excerpt: {
-      type: String,
       trim: true,
-      maxLength: [300, "Excerpt cannot exceed 300 characters"],
       default: "",
+      type: String,
+      maxLength: [300, "Excerpt cannot exceed 300 characters"],
     },
     featuredImage: {
       url: { type: String, default: "" },
       public_id: { type: String, default: "" },
     },
     author: {
-      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      type: mongoose.Schema.Types.ObjectId,
       required: [true, "Author is required"],
     },
     category: {
       type: String,
+      default: "Technology",
       required: [true, "Category is required"],
       enum: [
         "Technology",
@@ -43,18 +44,17 @@ const postSchema = new mongoose.Schema(
         "Sports",
         "Other",
       ],
-      default: "Technology",
     },
     tags: [
       {
-        type: String,
         trim: true,
+        type: String,
       },
     ],
     status: {
       type: String,
-      enum: ["draft", "scheduled", "published", "archived"],
       default: "draft",
+      enum: ["draft", "scheduled", "published", "archived"],
     },
     scheduledAt: {
       type: Date,
@@ -63,13 +63,13 @@ const postSchema = new mongoose.Schema(
 
     // Series / Multi-Part Tutorial Support
     series: {
-      type: mongoose.Schema.Types.ObjectId,
       ref: "Series",
       default: null,
+      type: mongoose.Schema.Types.ObjectId,
     },
     seriesOrder: {
-      type: Number,
       default: 0,
+      type: Number,
     },
 
     // AI Features
@@ -86,8 +86,8 @@ const postSchema = new mongoose.Schema(
       default: "",
     },
     readingTime: {
-      type: Number, // in minutes
       default: 1,
+      type: Number, // in minutes
     },
 
     // Ad & Monetization Readiness
@@ -96,71 +96,71 @@ const postSchema = new mongoose.Schema(
       default: true,
     },
     adSafetyReason: {
-      type: String,
       default: "",
+      type: String,
     },
     isSponsored: {
       type: Boolean,
       default: false,
     },
     sponsorName: {
-      type: String,
       trim: true,
       default: "",
+      type: String,
     },
     sponsorUrl: {
-      type: String,
       trim: true,
       default: "",
+      type: String,
     },
 
     // Engagement Metrics
     likes: [
       {
-        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        type: mongoose.Schema.Types.ObjectId,
       },
     ],
     likesCount: {
-      type: Number,
       default: 0,
+      type: Number,
     },
     reactions: {
       love: { type: Number, default: 0 },
       fire: { type: Number, default: 0 },
-      insightful: { type: Number, default: 0 },
       clap: { type: Number, default: 0 },
+      insightful: { type: Number, default: 0 },
     },
     commentsCount: {
-      type: Number,
       default: 0,
+      type: Number,
     },
     views: {
-      type: Number,
       default: 0,
+      type: Number,
     },
 
     // SEO Fields
     slug: {
+      index: true,
       type: String,
       unique: true,
-      index: true,
     },
     metaDescription: {
-      type: String,
       trim: true,
-      maxLength: [160, "Meta description cannot exceed 160 characters"],
       default: "",
+      type: String,
+      maxLength: [160, "Meta description cannot exceed 160 characters"],
     },
     canonicalUrl: {
-      type: String,
       trim: true,
       default: "",
+      type: String,
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Generate Slug, Excerpt, Reading Time & Like Count Before Save
@@ -203,10 +203,10 @@ postSchema.pre("save", function () {
 
 // Text search Index
 postSchema.index({
+  tags: "text",
   title: "text",
   content: "text",
   excerpt: "text",
-  tags: "text",
 });
 
 // Compound Indexes

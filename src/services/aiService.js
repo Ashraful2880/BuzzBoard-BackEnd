@@ -1,10 +1,43 @@
 const OpenAI = require("openai");
 
 const STOP_WORDS = new Set([
-  "the", "and", "for", "that", "this", "with", "from", "your", "have", "more",
-  "will", "about", "into", "their", "what", "when", "where", "which", "while",
-  "there", "been", "were", "they", "them", "then", "than", "some", "such",
-  "only", "other", "also", "very", "just", "over", "after", "before", "most",
+  "the",
+  "and",
+  "for",
+  "that",
+  "this",
+  "with",
+  "from",
+  "your",
+  "have",
+  "more",
+  "will",
+  "about",
+  "into",
+  "their",
+  "what",
+  "when",
+  "where",
+  "which",
+  "while",
+  "there",
+  "been",
+  "were",
+  "they",
+  "them",
+  "then",
+  "than",
+  "some",
+  "such",
+  "only",
+  "other",
+  "also",
+  "very",
+  "just",
+  "over",
+  "after",
+  "before",
+  "most",
 ]);
 
 const UNSAFE_PATTERNS = [
@@ -22,7 +55,9 @@ const isOpenAIConfigured = () => {
 
 const isGeminiConfigured = () => {
   const key = process.env.GOOGLE_GEMINI_API_KEY;
-  return Boolean(key && key !== "your_google_gemini_api_key" && key.length > 15);
+  return Boolean(
+    key && key !== "your_google_gemini_api_key" && key.length > 15,
+  );
 };
 
 const getOpenAIClient = () => {
@@ -108,12 +143,16 @@ const splitSentences = (text) => {
 /**
  * 1. Generate SEO Metadata (Title suggestions, Excerpt, Meta Description, Slug, Tags)
  */
-const generateSEOMetadata = async ({ title = "", content = "", category = "Technology" }) => {
+const generateSEOMetadata = async ({
+  title = "",
+  content = "",
+  category = "Technology",
+}) => {
   if (isGeminiConfigured()) {
     try {
       const geminiRaw = await callGeminiAPI(
-        'You are an expert technical SEO strategist. Return ONLY valid JSON (no markdown fences) with keys: suggestedTitles (array of 3 strings), excerpt (string <= 250 chars), metaDescription (string <= 155 chars), tags (array of 5 lowercase strings), and slug (URL-safe hyphenated string).',
-        `Category: ${category}\nTitle: ${title}\nContent:\n${content.substring(0, 4000)}`
+        "You are an expert technical SEO strategist. Return ONLY valid JSON (no markdown fences) with keys: suggestedTitles (array of 3 strings), excerpt (string <= 250 chars), metaDescription (string <= 155 chars), tags (array of 5 lowercase strings), and slug (URL-safe hyphenated string).",
+        `Category: ${category}\nTitle: ${title}\nContent:\n${content.substring(0, 4000)}`,
       );
       if (geminiRaw) {
         const cleaned = geminiRaw.replace(/^```json\s*|\s*```$/g, "").trim();
@@ -156,14 +195,18 @@ const generateSEOMetadata = async ({ title = "", content = "", category = "Techn
   const sentences = splitSentences(content);
   const firstTwo = sentences.slice(0, 2).join(" ");
   const cleanTitle =
-    title.trim() || (sentences[0] ? sentences[0].substring(0, 70) : `Complete Guide to ${category}`);
+    title.trim() ||
+    (sentences[0]
+      ? sentences[0].substring(0, 70)
+      : `Complete Guide to ${category}`);
   const tags = extractKeywords(`${cleanTitle} ${content}`, 5);
   if (tags.length === 0) tags.push(category.toLowerCase(), "guide", "insights");
 
   const excerpt =
     firstTwo.length > 240
       ? `${firstTwo.substring(0, 237)}...`
-      : firstTwo || `${cleanTitle} - comprehensive insights and practical guide.`;
+      : firstTwo ||
+        `${cleanTitle} - comprehensive insights and practical guide.`;
 
   const metaDescription =
     excerpt.length > 155 ? `${excerpt.substring(0, 152)}...` : excerpt;
@@ -191,16 +234,26 @@ const generateSEOMetadata = async ({ title = "", content = "", category = "Techn
 /**
  * 2. AI Writing Co-Pilot (Improve, Expand, Outline, Grammar, Tone Shift)
  */
-const assistWriting = async ({ prompt = "", content = "", action = "improve", tone = "professional" }) => {
+const assistWriting = async ({
+  prompt = "",
+  content = "",
+  action = "improve",
+  tone = "professional",
+}) => {
   // Try Google Gemini Free Tier first if configured
   if (isGeminiConfigured()) {
     try {
       const geminiText = await callGeminiAPI(
         `You are an expert editorial AI co-pilot for BuzzBoard. Perform the "${action}" action using a "${tone}" tone.`,
-        `Instruction: ${prompt}\n\nDraft Content:\n${content}`
+        `Instruction: ${prompt}\n\nDraft Content:\n${content}`,
       );
       if (geminiText) {
-        return { provider: "google-gemini-free", action, tone, result: geminiText.trim() };
+        return {
+          provider: "google-gemini-free",
+          action,
+          tone,
+          result: geminiText.trim(),
+        };
       }
     } catch (err) {
       // Fallback
@@ -280,7 +333,7 @@ const generatePostSummary = async ({ title = "", content = "" }) => {
     try {
       const geminiText = await callGeminiAPI(
         "Summarize the following blog post into 3 concise bullet points (TL;DR) for busy readers.",
-        `Title: ${title}\n\nContent:\n${content.substring(0, 5000)}`
+        `Title: ${title}\n\nContent:\n${content.substring(0, 5000)}`,
       );
       if (geminiText) {
         return { provider: "google-gemini-free", summary: geminiText.trim() };
@@ -324,7 +377,10 @@ const generatePostSummary = async ({ title = "", content = "" }) => {
     bullets.push(content.trim().substring(0, 180) || title);
   }
 
-  const formattedSummary = [`TL;DR — ${title}:`, ...bullets.map((b) => `• ${b}`)].join("\n");
+  const formattedSummary = [
+    `TL;DR — ${title}:`,
+    ...bullets.map((b) => `• ${b}`),
+  ].join("\n");
 
   return {
     provider: "buzzboard-ai-engine",
@@ -349,7 +405,9 @@ const evaluateBrandSafety = async ({ title = "", content = "" }) => {
   const isAdSafe = matchedIssues.length === 0;
   return {
     isAdSafe,
-    adSafetyScore: isAdSafe ? 98 : Math.max(15, 100 - matchedIssues.length * 35),
+    adSafetyScore: isAdSafe
+      ? 98
+      : Math.max(15, 100 - matchedIssues.length * 35),
     reason: isAdSafe
       ? "Content complies with standard Google AdSense & Brand Safety guidelines."
       : matchedIssues.join("; "),
@@ -360,15 +418,23 @@ const evaluateBrandSafety = async ({ title = "", content = "" }) => {
 /**
  * 5. "Ask AI About This Post" — Contextual Q&A over a Post's Content
  */
-const askArticleQuestion = async ({ title = "", content = "", question = "" }) => {
+const askArticleQuestion = async ({
+  title = "",
+  content = "",
+  question = "",
+}) => {
   if (isGeminiConfigured()) {
     try {
       const geminiAnswer = await callGeminiAPI(
         "Answer the reader's question concisely based strictly on the provided article.",
-        `Article Title: ${title}\nArticle Content: ${content.substring(0, 5000)}\n\nQuestion: ${question}`
+        `Article Title: ${title}\nArticle Content: ${content.substring(0, 5000)}\n\nQuestion: ${question}`,
       );
       if (geminiAnswer) {
-        return { provider: "google-gemini-free", question, answer: geminiAnswer.trim() };
+        return {
+          provider: "google-gemini-free",
+          question,
+          answer: geminiAnswer.trim(),
+        };
       }
     } catch (err) {
       // Fallback
@@ -383,7 +449,8 @@ const askArticleQuestion = async ({ title = "", content = "", question = "" }) =
         messages: [
           {
             role: "system",
-            content: "Answer the reader's question concisely based on the provided article.",
+            content:
+              "Answer the reader's question concisely based on the provided article.",
           },
           {
             role: "user",
@@ -408,7 +475,10 @@ const askArticleQuestion = async ({ title = "", content = "", question = "" }) =
   const queryTerms = extractKeywords(question, 6);
   const scored = sentences.map((sentence) => {
     const lower = sentence.toLowerCase();
-    const hits = queryTerms.reduce((acc, term) => acc + (lower.includes(term) ? 1 : 0), 0);
+    const hits = queryTerms.reduce(
+      (acc, term) => acc + (lower.includes(term) ? 1 : 0),
+      0,
+    );
     return { sentence, hits };
   });
 
@@ -430,14 +500,18 @@ const askArticleQuestion = async ({ title = "", content = "", question = "" }) =
 /**
  * 6. 1-Click Multilingual Translation (Bangla <-> English)
  */
-const translateContent = async ({ title = "", content = "", targetLang = "bn" }) => {
+const translateContent = async ({
+  title = "",
+  content = "",
+  targetLang = "bn",
+}) => {
   const langLabel = targetLang === "bn" ? "Bangla (বাংলা)" : "English";
 
   if (isGeminiConfigured()) {
     try {
       const geminiTranslated = await callGeminiAPI(
         `Translate the following article title and content into natural ${langLabel}.`,
-        `Title: ${title}\n\nContent:\n${content.substring(0, 4000)}`
+        `Title: ${title}\n\nContent:\n${content.substring(0, 4000)}`,
       );
       if (geminiTranslated) {
         return {
@@ -486,7 +560,9 @@ const translateContent = async ({ title = "", content = "", targetLang = "bn" })
     targetLang,
     languageName: langLabel,
     translatedTitle:
-      targetLang === "bn" ? `[বাংলা সংস্করণ] ${title}` : `[English Version] ${title}`,
+      targetLang === "bn"
+        ? `[বাংলা সংস্করণ] ${title}`
+        : `[English Version] ${title}`,
     translatedContent:
       targetLang === "bn"
         ? `[বাংলা অনুবাদ — ${title}]\n\n${content}`

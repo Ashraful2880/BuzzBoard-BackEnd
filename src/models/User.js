@@ -4,17 +4,17 @@ const bcrypt = require("bcryptjs");
 const userSchema = new mongoose.Schema(
   {
     name: {
+      trim: true,
       type: String,
       required: [true, "Name is required"],
-      trim: true,
       maxLength: [50, "Name cannot exceed 50 characters"],
     },
     email: {
+      trim: true,
       type: String,
-      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
-      trim: true,
+      required: [true, "Email is required"],
       match: [
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,10})+$/,
         "Please fill a valid email address",
@@ -22,34 +22,34 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
+      select: false,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false,
     },
     profile_img: {
       url: { type: String, default: "" },
       public_id: { type: String, default: "" },
     },
     bio: {
-      type: String,
       trim: true,
-      maxLength: [300, "Bio cannot exceed 300 characters"],
       default: "",
+      type: String,
+      maxLength: [300, "Bio cannot exceed 300 characters"],
     },
     website: {
-      type: String,
       trim: true,
       default: "",
+      type: String,
     },
     socialLinks: {
+      github: { type: String, trim: true, default: "" },
       twitter: { type: String, trim: true, default: "" },
       linkedin: { type: String, trim: true, default: "" },
-      github: { type: String, trim: true, default: "" },
     },
     role: {
       type: String,
-      enum: ["user", "author", "admin"],
       default: "user",
+      enum: ["user", "author", "admin"],
     },
     isVerified: {
       type: Boolean,
@@ -57,26 +57,26 @@ const userSchema = new mongoose.Schema(
     },
     followers: [
       {
-        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        type: mongoose.Schema.Types.ObjectId,
       },
     ],
     following: [
       {
-        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        type: mongoose.Schema.Types.ObjectId,
       },
     ],
     bookmarks: [
       {
-        type: mongoose.Schema.Types.ObjectId,
         ref: "Post",
+        type: mongoose.Schema.Types.ObjectId,
       },
     ],
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Encrypt password before saving

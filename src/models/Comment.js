@@ -3,36 +3,36 @@ const mongoose = require("mongoose");
 const commentSchema = new mongoose.Schema(
   {
     post: {
-      type: mongoose.Schema.Types.ObjectId,
       ref: "Post",
-      required: [true, "Post reference is required"],
       index: true,
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Post reference is required"],
     },
     author: {
-      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      type: mongoose.Schema.Types.ObjectId,
       required: [true, "Author is required"],
     },
     content: {
+      trim: true,
       type: String,
       required: [true, "Comment content is required"],
-      trim: true,
       maxLength: [2000, "Comment cannot exceed 2000 characters"],
     },
     parentComment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Comment",
       default: null,
+      ref: "Comment",
+      type: mongoose.Schema.Types.ObjectId,
     },
     likes: [
       {
-        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        type: mongoose.Schema.Types.ObjectId,
       },
     ],
     likesCount: {
-      type: Number,
       default: 0,
+      type: Number,
     },
     isEdited: {
       type: Boolean,
@@ -40,13 +40,13 @@ const commentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["active", "flagged", "deleted"],
       default: "active",
+      enum: ["active", "flagged", "deleted"],
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 commentSchema.pre("save", function () {

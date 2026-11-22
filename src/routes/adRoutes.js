@@ -3,9 +3,9 @@ const {
   getActiveAds,
   recordAdClick,
   createAdCampaign,
-  getAllAdCampaigns,
   updateAdCampaign,
   deleteAdCampaign,
+  getAllAdCampaigns,
 } = require("../controllers/adController");
 const { protect } = require("../middleware/authMiddleware");
 

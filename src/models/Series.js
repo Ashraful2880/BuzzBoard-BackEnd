@@ -3,27 +3,27 @@ const mongoose = require("mongoose");
 const seriesSchema = new mongoose.Schema(
   {
     title: {
+      trim: true,
       type: String,
       required: [true, "Series title is required"],
-      trim: true,
       maxLength: [150, "Series title cannot exceed 150 characters"],
     },
     slug: {
+      index: true,
       type: String,
       unique: true,
-      index: true,
     },
     description: {
-      type: String,
       trim: true,
-      maxLength: [500, "Description cannot exceed 500 characters"],
       default: "",
+      type: String,
+      maxLength: [500, "Description cannot exceed 500 characters"],
     },
     author: {
-      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "Author is required"],
       index: true,
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Author is required"],
     },
     category: {
       type: String,
@@ -35,13 +35,13 @@ const seriesSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["ongoing", "completed", "archived"],
       default: "ongoing",
+      enum: ["ongoing", "completed", "archived"],
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 seriesSchema.pre("save", function () {

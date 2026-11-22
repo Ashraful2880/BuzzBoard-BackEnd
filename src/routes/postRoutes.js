@@ -1,21 +1,21 @@
 const express = require("express");
 const {
   likePost,
-  reactToPost,
-  getRelatedPosts,
-  getPostJsonLdSchema,
   getPosts,
-  getLatestPosts,
   createPost,
   updatePost,
   deletePost,
+  reactToPost,
   getPostById,
   getUserPosts,
+  getLatestPosts,
+  getRelatedPosts,
+  getPostJsonLdSchema,
 } = require("../controllers/postController");
 const {
-  getOrCreatePostSummary,
   askPostAI,
   translatePostOrDraft,
+  getOrCreatePostSummary,
 } = require("../controllers/aiController");
 const { protect } = require("../middleware/authMiddleware");
 const { uploadSingle } = require("../middleware/uploadMiddleware");
@@ -32,17 +32,17 @@ router.post("/", protect, uploadSingle, createPost);
 router.use("/:postId/comments", require("./commentRoutes"));
 
 // Dynamic /:id sub-routes
-router.get("/:id/summary", getOrCreatePostSummary);
 router.post("/:id/ask", askPostAI);
-router.post("/:id/translate", translatePostOrDraft);
 router.get("/:id/related", getRelatedPosts);
-router.get("/:id/schema", getPostJsonLdSchema);
 router.post("/:id/like", protect, likePost);
+router.get("/:id/schema", getPostJsonLdSchema);
 router.post("/:id/react", protect, reactToPost);
+router.get("/:id/summary", getOrCreatePostSummary);
+router.post("/:id/translate", translatePostOrDraft);
 
 // Single post CRUD
 router.get("/:id", getPostById);
-router.put("/:id", protect, uploadSingle, updatePost);
 router.delete("/:id", protect, deletePost);
+router.put("/:id", protect, uploadSingle, updatePost);
 
 module.exports = router;

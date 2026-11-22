@@ -1,8 +1,8 @@
 const express = require("express");
 const {
-  toggleBookmark,
   getBookmarks,
   toggleFollow,
+  toggleBookmark,
   getPublicAuthorProfile,
 } = require("../controllers/userController");
 const { protect } = require("../middleware/authMiddleware");

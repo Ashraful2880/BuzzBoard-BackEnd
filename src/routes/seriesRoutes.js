@@ -2,9 +2,9 @@ const express = require("express");
 const {
   createSeries,
   getAllSeries,
-  getSeriesById,
   updateSeries,
   deleteSeries,
+  getSeriesById,
 } = require("../controllers/seriesController");
 const { protect } = require("../middleware/authMiddleware");
 

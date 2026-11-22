@@ -19,12 +19,12 @@ const createSeries = asyncHandler(async (req, res) => {
 
   const series = await prisma.series.create({
     data: {
-      title: String(title).trim(),
-      slug: generateUniqueSlug(title),
-      description: description || "",
-      category: category || "Technology",
-      status: status || "ongoing",
       authorId: req.user.id,
+      title: String(title).trim(),
+      status: status || "ongoing",
+      description: description || "",
+      slug: generateUniqueSlug(title),
+      category: category || "Technology",
     },
     include: {
       author: { select: { id: true, name: true, profileImg: true, bio: true } },
@@ -33,8 +33,8 @@ const createSeries = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: "Series created successfully",
     data: serializeSeries(series),
+    message: "Series created successfully",
   });
 });
 
@@ -74,10 +74,10 @@ const getSeriesById = asyncHandler(async (req, res) => {
       author: {
         select: {
           id: true,
-          name: true,
-          profileImg: true,
           bio: true,
+          name: true,
           website: true,
+          profileImg: true,
         },
       },
     },
@@ -96,8 +96,8 @@ const getSeriesById = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: {
-      series: serializeSeries(series),
       totalParts: posts.length,
+      series: serializeSeries(series),
       posts: posts.map(serializePost),
     },
   });
@@ -133,8 +133,8 @@ const updateSeries = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: "Series updated successfully",
     data: serializeSeries(updated),
+    message: "Series updated successfully",
   });
 });
 
@@ -168,7 +168,7 @@ const deleteSeries = asyncHandler(async (req, res) => {
 module.exports = {
   createSeries,
   getAllSeries,
-  getSeriesById,
   updateSeries,
   deleteSeries,
+  getSeriesById,
 };

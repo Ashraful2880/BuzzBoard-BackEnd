@@ -1,8 +1,8 @@
 const express = require("express");
 const {
+  getSubscribers,
   subscribeNewsletter,
   unsubscribeNewsletter,
-  getSubscribers,
 } = require("../controllers/newsletterController");
 const { protect } = require("../middleware/authMiddleware");
 

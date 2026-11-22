@@ -4,12 +4,12 @@ const { serializeNotification } = require("../utils/serializers");
 
 // Helper function to create an in-app notification safely
 const createNotification = async ({
-  recipient,
-  sender,
   type,
+  sender,
+  message,
+  recipient,
   post = null,
   comment = null,
-  message,
 }) => {
   try {
     if (!recipient || !sender) return null;
@@ -17,12 +17,12 @@ const createNotification = async ({
 
     return await prisma.notification.create({
       data: {
-        recipientId: String(recipient),
-        senderId: String(sender),
         type,
+        message,
+        senderId: String(sender),
+        recipientId: String(recipient),
         postId: post ? String(post) : null,
         commentId: comment ? String(comment) : null,
-        message,
       },
     });
   } catch (err) {
@@ -47,13 +47,13 @@ const getNotifications = asyncHandler(async (req, res) => {
   const [notifications, unreadCount] = await Promise.all([
     prisma.notification.findMany({
       where,
+      take: limitNum,
+      orderBy: { createdAt: "desc" },
+      skip: (pageNum - 1) * limitNum,
       include: {
         sender: { select: { id: true, name: true, profileImg: true } },
         post: { select: { id: true, title: true, slug: true } },
       },
-      orderBy: { createdAt: "desc" },
-      skip: (pageNum - 1) * limitNum,
-      take: limitNum,
     }),
     prisma.notification.count({
       where: { recipientId: req.user.id, isRead: false },
@@ -61,8 +61,8 @@ const getNotifications = asyncHandler(async (req, res) => {
   ]);
 
   res.status(200).json({
-    success: true,
     unreadCount,
+    success: true,
     count: notifications.length,
     data: notifications.map(serializeNotification),
   });
@@ -93,8 +93,8 @@ const markNotificationRead = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: "Notification marked as read",
     data: serializeNotification(updated),
+    message: "Notification marked as read",
   });
 });
 
@@ -114,8 +114,8 @@ const markAllNotificationsRead = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  createNotification,
   getNotifications,
+  createNotification,
   markNotificationRead,
   markAllNotificationsRead,
 };

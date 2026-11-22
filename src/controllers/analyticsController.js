@@ -18,23 +18,30 @@ const getCreatorAnalytics = asyncHandler(async (req, res) => {
 
   const totalViews = posts.reduce((sum, p) => sum + (p.views || 0), 0);
   const totalLikes = posts.reduce((sum, p) => sum + (p.likesCount || 0), 0);
-  const totalComments = posts.reduce((sum, p) => sum + (p.commentsCount || 0), 0);
+  const totalComments = posts.reduce(
+    (sum, p) => sum + (p.commentsCount || 0),
+    0,
+  );
   const adSafePosts = posts.filter((p) => p.isAdSafe !== false).length;
 
   const avgEngagementRate =
     publishedPosts.length > 0
       ? Number(
           (
-            publishedPosts.reduce((sum, p) => sum + calculateEngagementRate(p), 0) /
-            publishedPosts.length
-          ).toFixed(2)
+            publishedPosts.reduce(
+              (sum, p) => sum + calculateEngagementRate(p),
+              0,
+            ) / publishedPosts.length
+          ).toFixed(2),
         )
       : 0;
 
   const topPerformingPosts = [...publishedPosts]
     .sort(
       (a, b) =>
-        (b.views || 0) + (b.likesCount || 0) * 5 - ((a.views || 0) + (a.likesCount || 0) * 5)
+        (b.views || 0) +
+        (b.likesCount || 0) * 5 -
+        ((a.views || 0) + (a.likesCount || 0) * 5),
     )
     .slice(0, 5)
     .map((p) => ({
@@ -47,15 +54,17 @@ const getCreatorAnalytics = asyncHandler(async (req, res) => {
     data: {
       overview: {
         totalPosts,
-        publishedCount: publishedPosts.length,
-        draftCount: draftPosts.length,
         totalViews,
         totalLikes,
         totalComments,
         avgEngagementRate,
+        draftCount: draftPosts.length,
         adSafePostsCount: adSafePosts,
+        publishedCount: publishedPosts.length,
         adSafeReadyPercentage:
-          totalPosts > 0 ? Number(((adSafePosts / totalPosts) * 100).toFixed(1)) : 100,
+          totalPosts > 0
+            ? Number(((adSafePosts / totalPosts) * 100).toFixed(1))
+            : 100,
       },
       topPerformingPosts,
     },
@@ -72,7 +81,10 @@ const getMonetizationAnalytics = asyncHandler(async (req, res) => {
 
   const totalCampaigns = campaigns.length;
   const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
-  const totalImpressions = campaigns.reduce((sum, c) => sum + (c.impressions || 0), 0);
+  const totalImpressions = campaigns.reduce(
+    (sum, c) => sum + (c.impressions || 0),
+    0,
+  );
   const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
   const totalBudget = campaigns.reduce((sum, c) => sum + (c.budget || 0), 0);
   const averageCtr =
@@ -84,12 +96,12 @@ const getMonetizationAnalytics = asyncHandler(async (req, res) => {
     success: true,
     data: {
       summary: {
+        averageCtr,
+        totalClicks,
+        totalBudget,
         totalCampaigns,
         activeCampaigns,
         totalImpressions,
-        totalClicks,
-        averageCtr,
-        totalBudget,
       },
       campaigns: campaigns.map(serializeAd),
     },
@@ -103,25 +115,32 @@ const getSitemap = asyncHandler(async (req, res) => {
   const baseUrl = process.env.FRONTEND_URL || "https://buzzboard.app";
   const posts = await prisma.post.findMany({
     where: { status: "published" },
-    select: { id: true, title: true, slug: true, category: true, updatedAt: true, createdAt: true },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      category: true,
+      updatedAt: true,
+      createdAt: true,
+    },
     orderBy: { updatedAt: "desc" },
   });
 
   const urls = posts.map((post) => ({
-    url: `${baseUrl}/posts/${post.slug || post.id}`,
+    priority: 0.8,
     slug: post.slug,
     title: post.title,
     category: post.category,
-    lastModified: post.updatedAt || post.createdAt,
     changeFrequency: "weekly",
-    priority: 0.8,
+    url: `${baseUrl}/posts/${post.slug || post.id}`,
+    lastModified: post.updatedAt || post.createdAt,
   }));
 
   res.status(200).json({
-    success: true,
-    count: urls.length,
     baseUrl,
     data: urls,
+    success: true,
+    count: urls.length,
   });
 });
 
@@ -140,7 +159,11 @@ const getTrendingPosts = asyncHandler(async (req, res) => {
     include: {
       author: { select: { id: true, name: true, profileImg: true, bio: true } },
     },
-    orderBy: [{ views: "desc" }, { likesCount: "desc" }, { commentsCount: "desc" }],
+    orderBy: [
+      { views: "desc" },
+      { likesCount: "desc" },
+      { commentsCount: "desc" },
+    ],
     take: limitNum,
   });
 
@@ -205,9 +228,9 @@ ${itemsXml}
 });
 
 module.exports = {
+  getSitemap,
+  getRssFeed,
+  getTrendingPosts,
   getCreatorAnalytics,
   getMonetizationAnalytics,
-  getSitemap,
-  getTrendingPosts,
-  getRssFeed,
 };

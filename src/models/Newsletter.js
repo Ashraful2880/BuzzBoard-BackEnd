@@ -3,34 +3,34 @@ const mongoose = require("mongoose");
 const newsletterSchema = new mongoose.Schema(
   {
     email: {
+      trim: true,
       type: String,
-      required: [true, "Email address is required"],
       unique: true,
       lowercase: true,
-      trim: true,
+      required: [true, "Email address is required"],
       match: [
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,10})+$/,
         "Please provide a valid email address",
       ],
     },
     name: {
-      type: String,
       trim: true,
       default: "",
+      type: String,
     },
     subscribedCategories: {
       type: [String],
       default: ["All"],
     },
     isActive: {
+      index: true,
       type: Boolean,
       default: true,
-      index: true,
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Newsletter", newsletterSchema);

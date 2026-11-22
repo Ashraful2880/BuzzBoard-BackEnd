@@ -57,7 +57,14 @@ const serializeNotification = (notif) => {
     _id: notif.id,
     recipient: notif.recipientId,
     sender: notif.sender ? serializeUser(notif.sender) : notif.senderId,
-    post: notif.post ? { _id: notif.post.id, id: notif.post.id, title: notif.post.title, slug: notif.post.slug } : null,
+    post: notif.post
+      ? {
+          _id: notif.post.id,
+          id: notif.post.id,
+          title: notif.post.title,
+          slug: notif.post.slug,
+        }
+      : null,
   };
 };
 
@@ -72,14 +79,21 @@ const generateUniqueSlug = (title) => {
 };
 
 const calculateReadingTime = (content) => {
-  const wordCount = String(content || "").trim().split(/\s+/).filter(Boolean).length;
+  const wordCount = String(content || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
   return Math.max(1, Math.ceil(wordCount / 200));
 };
 
 const buildExcerpt = (content, explicitExcerpt) => {
   if (explicitExcerpt && explicitExcerpt.trim()) return explicitExcerpt.trim();
-  const plainText = String(content || "").replace(/[#_*`~>-]/g, "").trim();
-  return plainText.length > 160 ? `${plainText.substring(0, 157)}...` : plainText;
+  const plainText = String(content || "")
+    .replace(/[#_*`~>-]/g, "")
+    .trim();
+  return plainText.length > 160
+    ? `${plainText.substring(0, 157)}...`
+    : plainText;
 };
 
 module.exports = {

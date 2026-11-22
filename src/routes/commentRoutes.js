@@ -1,10 +1,10 @@
 const express = require("express");
 const {
-  getPostComments,
+  likeComment,
   createComment,
   updateComment,
   deleteComment,
-  likeComment,
+  getPostComments,
 } = require("../controllers/commentController");
 const { protect } = require("../middleware/authMiddleware");
 

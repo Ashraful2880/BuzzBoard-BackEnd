@@ -79,7 +79,8 @@ const calculateEngagementRate = (post) => {
     (reactions.insightful || 0) +
     (reactions.clap || 0);
   const totalInteractions = likesCount + commentsCount + reactionsTotal;
-  const engagementRate = (totalInteractions / Math.max(post.views || 1, 1)) * 100;
+  const engagementRate =
+    (totalInteractions / Math.max(post.views || 1, 1)) * 100;
   return Number(Math.min(engagementRate, 100).toFixed(2));
 };
 
@@ -89,21 +90,21 @@ const calculateEngagementRate = (post) => {
 const createPost = asyncHandler(async (req, res) => {
   const {
     title,
+    tags,
+    status,
+    series,
     content,
     excerpt,
     category,
-    tags,
-    status,
-    scheduledAt,
-    series,
+    sponsorUrl,
+    aiAssisted,
     seriesOrder,
-    metaDescription,
-    canonicalUrl,
+    scheduledAt,
     isSponsored,
     sponsorName,
-    sponsorUrl,
     aiGenerated,
-    aiAssisted,
+    canonicalUrl,
+    metaDescription,
   } = req.body;
 
   if (!title || !content) {
@@ -114,7 +115,10 @@ const createPost = asyncHandler(async (req, res) => {
   const parsedTags = Array.isArray(tags)
     ? tags.map((tag) => String(tag).trim()).filter(Boolean)
     : typeof tags === "string" && tags.trim()
-      ? tags.split(",").map((tag) => tag.trim()).filter(Boolean)
+      ? tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean)
       : [];
 
   const safetyReport = await evaluateBrandSafety({ title, content });
@@ -125,46 +129,56 @@ const createPost = asyncHandler(async (req, res) => {
       : status || "draft";
 
   const finalExcerpt = buildExcerpt(content, excerpt);
-  const finalMeta = (metaDescription || finalExcerpt || title).substring(0, 160);
+  const finalMeta = (metaDescription || finalExcerpt || title).substring(
+    0,
+    160,
+  );
 
   const post = await prisma.post.create({
     data: {
-      title: String(title).trim(),
-      slug: generateUniqueSlug(title),
       content,
-      excerpt: finalExcerpt,
-      category: category || "Technology",
       tags: parsedTags,
+      excerpt: finalExcerpt,
       status: resolvedStatus,
-      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      authorId: req.user.id,
       seriesId: series || null,
-      seriesOrder: Number(seriesOrder) || 0,
       metaDescription: finalMeta,
+      title: String(title).trim(),
+      sponsorUrl: sponsorUrl || "",
+      sponsorName: sponsorName || "",
+      slug: generateUniqueSlug(title),
+      aiAssisted: Boolean(aiAssisted),
+      isAdSafe: safetyReport.isAdSafe,
       canonicalUrl: canonicalUrl || "",
       isSponsored: Boolean(isSponsored),
-      sponsorName: sponsorName || "",
-      sponsorUrl: sponsorUrl || "",
       aiGenerated: Boolean(aiGenerated),
-      aiAssisted: Boolean(aiAssisted),
-      readingTime: calculateReadingTime(content),
-      isAdSafe: safetyReport.isAdSafe,
+      category: category || "Technology",
       adSafetyReason: safetyReport.reason,
-      authorId: req.user.id,
+      seriesOrder: Number(seriesOrder) || 0,
+      readingTime: calculateReadingTime(content),
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       featuredImage: req.file
         ? { url: req.file.path, public_id: req.file.filename }
         : { url: "", public_id: "" },
     },
     include: {
       author: {
-        select: { id: true, name: true, email: true, profileImg: true, bio: true, website: true },
+        select: {
+          id: true,
+          bio: true,
+          name: true,
+          email: true,
+          website: true,
+          profileImg: true,
+        },
       },
     },
   });
 
   res.status(201).json({
     success: true,
-    message: "Post created successfully",
     data: serializePost(post),
+    message: "Post created successfully",
   });
 });
 
@@ -175,15 +189,15 @@ const getPosts = asyncHandler(async (req, res) => {
   await publishDueScheduledPosts();
 
   const {
-    page = 1,
-    limit = 10,
-    search,
-    category,
     tag,
+    search,
     author,
     series,
-    status = "published",
+    page = 1,
+    category,
+    limit = 10,
     adSafeOnly,
+    status = "published",
   } = req.query;
 
   const where = {};
@@ -210,7 +224,14 @@ const getPosts = asyncHandler(async (req, res) => {
       where,
       include: {
         author: {
-          select: { id: true, name: true, email: true, profileImg: true, bio: true, website: true },
+          select: {
+            id: true,
+            bio: true,
+            name: true,
+            email: true,
+            website: true,
+            profileImg: true,
+          },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -229,10 +250,10 @@ const getPosts = asyncHandler(async (req, res) => {
       engagementRate: calculateEngagementRate(p),
     })),
     pagination: {
-      current: pageNum,
       total,
-      page: pageNum,
       totalPages,
+      page: pageNum,
+      current: pageNum,
     },
     filters: { search, category, tag, status },
   });
@@ -251,11 +272,11 @@ const getPostById = asyncHandler(async (req, res) => {
       author: {
         select: {
           id: true,
+          bio: true,
           name: true,
           email: true,
-          profileImg: true,
-          bio: true,
           website: true,
+          profileImg: true,
           socialLinks: true,
         },
       },
@@ -275,7 +296,7 @@ const getPostById = asyncHandler(async (req, res) => {
 
   const { isNewUniqueView, liveReaders } = recordUniqueViewAndLiveReader(
     post.id,
-    viewerKey
+    viewerKey,
   );
 
   if (post.status === "published" && isNewUniqueView) {
@@ -286,11 +307,11 @@ const getPostById = asyncHandler(async (req, res) => {
         author: {
           select: {
             id: true,
+            bio: true,
             name: true,
             email: true,
-            profileImg: true,
-            bio: true,
             website: true,
+            profileImg: true,
             socialLinks: true,
           },
         },
@@ -337,26 +358,41 @@ const updatePost = asyncHandler(async (req, res) => {
   if (req.body.category !== undefined) updateData.category = req.body.category;
   if (req.body.status !== undefined) updateData.status = req.body.status;
   if (req.body.scheduledAt !== undefined) {
-    updateData.scheduledAt = req.body.scheduledAt ? new Date(req.body.scheduledAt) : null;
+    updateData.scheduledAt = req.body.scheduledAt
+      ? new Date(req.body.scheduledAt)
+      : null;
   }
-  if (req.body.series !== undefined) updateData.seriesId = req.body.series || null;
-  if (req.body.seriesOrder !== undefined) updateData.seriesOrder = Number(req.body.seriesOrder) || 0;
-  if (req.body.metaDescription !== undefined) updateData.metaDescription = req.body.metaDescription;
-  if (req.body.canonicalUrl !== undefined) updateData.canonicalUrl = req.body.canonicalUrl;
-  if (req.body.isSponsored !== undefined) updateData.isSponsored = Boolean(req.body.isSponsored);
-  if (req.body.sponsorName !== undefined) updateData.sponsorName = req.body.sponsorName;
-  if (req.body.sponsorUrl !== undefined) updateData.sponsorUrl = req.body.sponsorUrl;
+  if (req.body.series !== undefined)
+    updateData.seriesId = req.body.series || null;
+  if (req.body.seriesOrder !== undefined)
+    updateData.seriesOrder = Number(req.body.seriesOrder) || 0;
+  if (req.body.metaDescription !== undefined)
+    updateData.metaDescription = req.body.metaDescription;
+  if (req.body.canonicalUrl !== undefined)
+    updateData.canonicalUrl = req.body.canonicalUrl;
+  if (req.body.isSponsored !== undefined)
+    updateData.isSponsored = Boolean(req.body.isSponsored);
+  if (req.body.sponsorName !== undefined)
+    updateData.sponsorName = req.body.sponsorName;
+  if (req.body.sponsorUrl !== undefined)
+    updateData.sponsorUrl = req.body.sponsorUrl;
 
   if (req.body.tags !== undefined) {
     updateData.tags = Array.isArray(req.body.tags)
       ? req.body.tags.map((t) => String(t).trim()).filter(Boolean)
       : typeof req.body.tags === "string"
-        ? req.body.tags.split(",").map((t) => t.trim()).filter(Boolean)
+        ? req.body.tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
         : [];
   }
 
   if (req.file) {
-    updateData.featuredImage = { url: req.file.path, public_id: req.file.filename };
+    updateData.featuredImage = {
+      url: req.file.path,
+      public_id: req.file.filename,
+    };
   }
 
   const updatedPost = await prisma.post.update({
@@ -364,7 +400,14 @@ const updatePost = asyncHandler(async (req, res) => {
     data: updateData,
     include: {
       author: {
-        select: { id: true, name: true, email: true, profileImg: true, bio: true, website: true },
+        select: {
+          id: true,
+          bio: true,
+          name: true,
+          email: true,
+          website: true,
+          profileImg: true,
+        },
       },
     },
   });
@@ -443,10 +486,10 @@ const likePost = asyncHandler(async (req, res) => {
       data: { likesCount: { increment: 1 } },
     });
     await createNotification({
-      recipient: post.authorId,
-      sender: req.user.id,
       type: "like",
       post: post.id,
+      sender: req.user.id,
+      recipient: post.authorId,
       message: `${req.user.name} liked your post "${post.title}"`,
     });
   }
@@ -470,7 +513,9 @@ const reactToPost = asyncHandler(async (req, res) => {
 
   if (!validTypes.includes(type)) {
     res.status(400);
-    throw new Error(`Invalid reaction type. Choose one of: ${validTypes.join(", ")}`);
+    throw new Error(
+      `Invalid reaction type. Choose one of: ${validTypes.join(", ")}`,
+    );
   }
 
   const post = await prisma.post.findUnique({ where: { id: req.params.id } });
@@ -493,10 +538,10 @@ const reactToPost = asyncHandler(async (req, res) => {
   });
 
   await createNotification({
-    recipient: post.authorId,
-    sender: req.user.id,
-    type: "reaction",
     post: post.id,
+    type: "reaction",
+    sender: req.user.id,
+    recipient: post.authorId,
     message: `${req.user.name} reacted (${type}) to your post "${post.title}"`,
   });
 
@@ -558,30 +603,31 @@ const getPostJsonLdSchema = asyncHandler(async (req, res) => {
   }
 
   const baseUrl = process.env.FRONTEND_URL || "https://buzzboard.app";
-  const postUrl = post.canonicalUrl || `${baseUrl}/posts/${post.slug || post.id}`;
+  const postUrl =
+    post.canonicalUrl || `${baseUrl}/posts/${post.slug || post.id}`;
 
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
     headline: post.title,
-    description: post.metaDescription || post.excerpt || post.title,
-    image: post.featuredImage?.url ? [post.featuredImage.url] : [],
-    datePublished: post.createdAt,
+    "@type": "BlogPosting",
     dateModified: post.updatedAt,
+    datePublished: post.createdAt,
+    "@context": "https://schema.org",
+    image: post.featuredImage?.url ? [post.featuredImage.url] : [],
+    description: post.metaDescription || post.excerpt || post.title,
     author: [
       {
         "@type": "Person",
-        name: post.author?.name || "BuzzBoard Author",
         url: post.author?.website || baseUrl,
+        name: post.author?.name || "BuzzBoard Author",
       },
     ],
     mainEntityOfPage: {
-      "@type": "WebPage",
       "@id": postUrl,
+      "@type": "WebPage",
     },
-    keywords: Array.isArray(post.tags) ? post.tags.join(", ") : "",
     articleSection: post.category,
     timeRequired: `PT${post.readingTime || 1}M`,
+    keywords: Array.isArray(post.tags) ? post.tags.join(", ") : "",
   };
 
   res.status(200).json({
@@ -606,7 +652,15 @@ const getUserPosts = asyncHandler(async (req, res) => {
     prisma.post.findMany({
       where,
       include: {
-        author: { select: { id: true, name: true, email: true, profileImg: true, bio: true } },
+        author: {
+          select: {
+            id: true,
+            bio: true,
+            name: true,
+            email: true,
+            profileImg: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       skip: (pageNum - 1) * limitNum,
@@ -620,8 +674,8 @@ const getUserPosts = asyncHandler(async (req, res) => {
     data: posts.map(serializePost),
     pagination: {
       current: pageNum,
-      total: Math.ceil(total / limitNum),
       count: posts.length,
+      total: Math.ceil(total / limitNum),
     },
   });
 });
@@ -640,12 +694,12 @@ const getLatestPosts = asyncHandler(async (req, res) => {
       author: {
         select: {
           id: true,
-          name: true,
-          email: true,
-          profileImg: true,
           bio: true,
-          website: true,
+          name: true,
           role: true,
+          email: true,
+          website: true,
+          profileImg: true,
         },
       },
       series: { select: { id: true, title: true, slug: true } },
@@ -661,15 +715,15 @@ const getLatestPosts = asyncHandler(async (req, res) => {
 
 module.exports = {
   likePost,
-  reactToPost,
-  getRelatedPosts,
-  getPostJsonLdSchema,
   getPosts,
-  getLatestPosts,
   createPost,
   updatePost,
   deletePost,
   getPostById,
+  reactToPost,
   getUserPosts,
+  getLatestPosts,
+  getRelatedPosts,
+  getPostJsonLdSchema,
   calculateEngagementRate,
 };

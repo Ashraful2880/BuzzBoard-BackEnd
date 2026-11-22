@@ -15,8 +15,8 @@ const router = express.Router();
 router.post("/login", loginUser);
 router.post("/register", registerUser);
 router.get("/google", googleAuthRedirect);
-router.get("/google/callback", googleAuthCallback);
 router.get("/profile", protect, getUserProfile);
+router.get("/google/callback", googleAuthCallback);
 router.put("/profile", protect, uploadSingle, updateUser);
 
 module.exports = router;

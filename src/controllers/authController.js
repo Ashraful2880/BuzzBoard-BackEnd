@@ -35,11 +35,11 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const user = await prisma.user.create({
     data: {
-      name: String(name).trim(),
-      email: normalizedEmail,
-      password: hashedPassword,
       bio: bio || "",
+      email: normalizedEmail,
       website: website || "",
+      password: hashedPassword,
+      name: String(name).trim(),
     },
   });
 
@@ -72,7 +72,7 @@ const loginUser = asyncHandler(async (req, res) => {
   if (user && !user.password) {
     res.status(401);
     throw new Error(
-      `This account is linked with ${user.authProvider || "OAuth"}. Please continue with ${user.authProvider || "OAuth"}.`
+      `This account is linked with ${user.authProvider || "OAuth"}. Please continue with ${user.authProvider || "OAuth"}.`,
     );
   }
 
@@ -136,7 +136,8 @@ const updateUser = asyncHandler(async (req, res) => {
 
   const updateData = {};
   if (req.body.name) updateData.name = String(req.body.name).trim();
-  if (req.body.email) updateData.email = String(req.body.email).toLowerCase().trim();
+  if (req.body.email)
+    updateData.email = String(req.body.email).toLowerCase().trim();
   if (req.body.bio !== undefined) updateData.bio = req.body.bio;
   if (req.body.website !== undefined) updateData.website = req.body.website;
 
@@ -152,9 +153,9 @@ const updateUser = asyncHandler(async (req, res) => {
     if (parsedLinks && typeof parsedLinks === "object") {
       const currentLinks = user.socialLinks || {};
       updateData.socialLinks = {
+        github: parsedLinks.github ?? currentLinks.github ?? "",
         twitter: parsedLinks.twitter ?? currentLinks.twitter ?? "",
         linkedin: parsedLinks.linkedin ?? currentLinks.linkedin ?? "",
-        github: parsedLinks.github ?? currentLinks.github ?? "",
       };
     }
   }
@@ -209,8 +210,8 @@ const getServerBaseUrl = (req) => {
 const findOrCreateOAuthUser = async ({
   name,
   email,
-  avatarUrl,
   provider,
+  avatarUrl,
   providerId,
 }) => {
   const normalizedEmail = String(email).toLowerCase().trim();
@@ -221,15 +222,15 @@ const findOrCreateOAuthUser = async ({
   if (!user) {
     user = await prisma.user.create({
       data: {
-        name: String(name || normalizedEmail.split("@")[0]).trim(),
-        email: normalizedEmail,
         password: null,
+        isVerified: true,
+        email: normalizedEmail,
         authProvider: provider,
         providerId: String(providerId),
-        isVerified: true,
+        name: String(name || normalizedEmail.split("@")[0]).trim(),
         profileImg: {
-          url: avatarUrl || "",
           public_id: "",
+          url: avatarUrl || "",
         },
       },
     });
@@ -239,10 +240,7 @@ const findOrCreateOAuthUser = async ({
     if (!user.providerId && providerId) {
       updatePayload.providerId = String(providerId);
     }
-    if (
-      avatarUrl &&
-      (!user.profileImg || !user.profileImg.url)
-    ) {
+    if (avatarUrl && (!user.profileImg || !user.profileImg.url)) {
       updatePayload.profileImg = { url: avatarUrl, public_id: "" };
     }
 
@@ -268,8 +266,8 @@ const googleAuthRedirect = (req, res) => {
   if (!clientId || !clientSecret) {
     return res.redirect(
       `${frontendUrl}/login?oauth_error=${encodeURIComponent(
-        "Google OAuth is not configured on the server."
-      )}`
+        "Google OAuth is not configured on the server.",
+      )}`,
     );
   }
 
@@ -279,14 +277,16 @@ const googleAuthRedirect = (req, res) => {
 
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: callbackUrl,
     response_type: "code",
-    scope: "openid email profile",
     access_type: "offline",
     prompt: "select_account",
+    redirect_uri: callbackUrl,
+    scope: "openid email profile",
   });
 
-  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  res.redirect(
+    `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`,
+  );
 };
 
 // @desc    Google OAuth callback
@@ -299,8 +299,8 @@ const googleAuthCallback = async (req, res) => {
   if (error || !code) {
     return res.redirect(
       `${frontendUrl}/login?oauth_error=${encodeURIComponent(
-        "Google sign-in was cancelled or failed."
-      )}`
+        "Google sign-in was cancelled or failed.",
+      )}`,
     );
   }
 
@@ -314,21 +314,26 @@ const googleAuthCallback = async (req, res) => {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code: String(code),
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
         redirect_uri: callbackUrl,
         grant_type: "authorization_code",
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
       }),
     });
 
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
-      throw new Error(tokenData.error_description || "Failed to obtain Google token");
+      throw new Error(
+        tokenData.error_description || "Failed to obtain Google token",
+      );
     }
 
-    const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
+    const userRes = await fetch(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      },
+    );
     const profile = await userRes.json();
 
     if (!profile.email) {
@@ -337,21 +342,21 @@ const googleAuthCallback = async (req, res) => {
 
     const user = await findOrCreateOAuthUser({
       name: profile.name,
-      email: profile.email,
-      avatarUrl: profile.picture,
       provider: "google",
+      email: profile.email,
       providerId: profile.id,
+      avatarUrl: profile.picture,
     });
 
     const jwtToken = generateToken(user.id);
     return res.redirect(
-      `${frontendUrl}/auth/callback?token=${encodeURIComponent(jwtToken)}`
+      `${frontendUrl}/auth/callback?token=${encodeURIComponent(jwtToken)}`,
     );
   } catch (err) {
     return res.redirect(
       `${frontendUrl}/login?oauth_error=${encodeURIComponent(
-        err.message || "Google authentication failed."
-      )}`
+        err.message || "Google authentication failed.",
+      )}`,
     );
   }
 };

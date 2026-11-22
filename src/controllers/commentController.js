@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const { prisma } = require("../config/database");
-const { createNotification } = require("./notificationController");
 const { serializeComment } = require("../utils/serializers");
+const { createNotification } = require("./notificationController");
 
 // @desc    Get comments for a post (including nested replies)
 // @route   GET /api/v1/posts/:postId/comments
@@ -23,11 +23,27 @@ const getPostComments = asyncHandler(async (req, res) => {
     prisma.comment.findMany({
       where: rootWhere,
       include: {
-        author: { select: { id: true, name: true, profileImg: true, role: true, bio: true } },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profileImg: true,
+            role: true,
+            bio: true,
+          },
+        },
         replies: {
           where: { status: "active" },
           include: {
-            author: { select: { id: true, name: true, profileImg: true, role: true, bio: true } },
+            author: {
+              select: {
+                id: true,
+                name: true,
+                profileImg: true,
+                role: true,
+                bio: true,
+              },
+            },
           },
           orderBy: { createdAt: "asc" },
         },
@@ -69,7 +85,9 @@ const createComment = asyncHandler(async (req, res) => {
   }
 
   if (parentComment) {
-    const parent = await prisma.comment.findUnique({ where: { id: parentComment } });
+    const parent = await prisma.comment.findUnique({
+      where: { id: parentComment },
+    });
     if (!parent || parent.postId !== postId) {
       res.status(400);
       throw new Error("Invalid parent comment for this post");
@@ -84,7 +102,15 @@ const createComment = asyncHandler(async (req, res) => {
       parentId: parentComment || null,
     },
     include: {
-      author: { select: { id: true, name: true, profileImg: true, role: true, bio: true } },
+      author: {
+        select: {
+          id: true,
+          name: true,
+          profileImg: true,
+          role: true,
+          bio: true,
+        },
+      },
     },
   });
 
@@ -94,18 +120,18 @@ const createComment = asyncHandler(async (req, res) => {
   });
 
   await createNotification({
-    recipient: post.authorId,
-    sender: req.user.id,
-    type: parentComment ? "reply" : "comment",
     post: post.id,
+    sender: req.user.id,
     comment: comment.id,
+    recipient: post.authorId,
+    type: parentComment ? "reply" : "comment",
     message: `${req.user.name} commented on your post "${post.title}"`,
   });
 
   res.status(201).json({
     success: true,
-    message: "Comment added successfully",
     data: serializeComment(comment),
+    message: "Comment added successfully",
   });
 });
 
@@ -120,7 +146,9 @@ const updateComment = asyncHandler(async (req, res) => {
     throw new Error("Comment content is required");
   }
 
-  const comment = await prisma.comment.findUnique({ where: { id: req.params.id } });
+  const comment = await prisma.comment.findUnique({
+    where: { id: req.params.id },
+  });
   if (!comment) {
     res.status(404);
     throw new Error("Comment not found");
@@ -135,7 +163,15 @@ const updateComment = asyncHandler(async (req, res) => {
     where: { id: comment.id },
     data: { content: String(content).trim(), isEdited: true },
     include: {
-      author: { select: { id: true, name: true, profileImg: true, role: true, bio: true } },
+      author: {
+        select: {
+          id: true,
+          name: true,
+          profileImg: true,
+          role: true,
+          bio: true,
+        },
+      },
     },
   });
 
@@ -187,7 +223,9 @@ const deleteComment = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/comments/:id/like
 // @access  Private
 const likeComment = asyncHandler(async (req, res) => {
-  const comment = await prisma.comment.findUnique({ where: { id: req.params.id } });
+  const comment = await prisma.comment.findUnique({
+    where: { id: req.params.id },
+  });
   if (!comment) {
     res.status(404);
     throw new Error("Comment not found");
@@ -228,9 +266,9 @@ const likeComment = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getPostComments,
+  likeComment,
   createComment,
   updateComment,
   deleteComment,
-  likeComment,
+  getPostComments,
 };
